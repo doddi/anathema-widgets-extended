@@ -1,0 +1,7 @@
+[package]
+name = "anathema-widgets-extended"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anathema = { git = "https://github.com/togglebyte/anathema/", branch = "dev" }
