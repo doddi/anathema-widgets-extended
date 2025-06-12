@@ -90,14 +90,18 @@ impl Component for Graph {
 }
 
 fn get_default_data_set() -> GraphData {
-    let gs = GraphSeries {
+    let gs1 = GraphSeries {
         points: List::from_iter(vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9]).into(),
         count: 10.into(),
     };
-    let series: List<GraphSeries> = List::from_iter(vec![gs]);
+    let gs2 = GraphSeries {
+        points: List::from_iter(vec![11, 12]).into(),
+        count: 2.into(),
+    };
+    let series: List<GraphSeries> = List::from_iter(vec![gs1, gs2]);
     GraphData {
         data: series.into(),
-        count: 1.into(),
+        count: 2.into(),
     }
 }
 

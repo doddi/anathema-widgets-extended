@@ -2,13 +2,18 @@ vstack
     text "Update needed: " state.update_needed
     text "Series count: " state.series.count
     text "Series[0] count: " state.series.data[0].count
+    text "Series[1] count: " state.series.data[1].count
     text "--------------"
-    text state.series.data[0].points
+    text "Concatonated points[0]: " state.series.data[0].points
+    text "Concatonated points[1]: " state.series.data[1].points
     text "--------------"
     // Data is populated at the start and also when the enter key is pressed
     // see usages of get_default_data_set().
     // However, when the enter key is pressed this loop empties
     for series in state.series.data[0].points
-        text "test"
+        text "series1"
+    text "--------------"
+    for series in state.series.data[1].points
+        text "series2"
     text "--------------"
     text "end"
