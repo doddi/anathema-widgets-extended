@@ -1,27 +1,26 @@
 use crate::ExtendedWidget;
 use anathema::component::{Children, Component, Context, KeyCode, KeyEvent, State};
+use anathema::default_widgets::Canvas;
+use anathema::geometry::LocalPos;
+use anathema::resolver::ValueKind;
 use anathema::runtime::Builder;
 use anathema::state::{List, Number, Value};
+use anathema::widgets::{Style, Widget};
 
 #[derive(State)]
 pub struct GraphState {
     update_needed: Value<bool>,
-    pub series: Value<GraphData>,
 }
 
-#[derive(State)]
+#[derive(Default)]
 pub struct GraphData {
-    pub data: Value<List<GraphSeries>>,
-    pub count: Value<u32>,
+    pub series: Vec<GraphSeries>,
 }
 
-#[derive(State)]
 pub struct GraphSeries {
-    pub points: Value<List<u8>>,
-    pub count: Value<u32>,
+    pub points: Vec<u16>,
 }
 
-#[derive(State)]
 pub struct DataPoint {
     pub x: Value<Number>,
     pub y: Value<Number>,
@@ -31,7 +30,6 @@ impl GraphState {
     pub fn new() -> Self {
         GraphState {
             update_needed: Value::new(false),
-            series: Value::new(get_default_data_set()),
         }
     }
 }
@@ -50,13 +48,59 @@ pub enum GraphMessage {
     UpdateDataPoints(String),
 }
 
-pub struct Graph {}
+pub struct Graph {
+    data: GraphData,
+    x_range: (u16, u16),
+    y_range: (u16, u16),
+}
 
 impl Graph {
     pub fn new() -> Self {
-        Self {}
+        Self {
+            data: GraphData::default(),
+            x_range: (0, 0),
+            y_range: (0, 0),
+        }
+    }
+    fn populate_graph_data_points(&mut self, state: &mut GraphState) {
+        state.update_needed.set(true);
+        self.data = get_default_data_set();
+        self.y_range = determine_largest_range_in_series(&self.data);
+        self.x_range = determine_largest_number_of_data_points(&self.data);
+    }
+   
+    fn get_y_range(&self) -> u16 {
+        /* TODO: instead of taking the values based on max ranges we should probably take into account
+         that the graph area may be bigger than the actual data points, data points themselves might get resized
+         */
+       self.y_range.1 - self.y_range.0 
+    }
+    
+    fn draw_axis(&self, canvas: &mut Canvas, x_visible: bool, y_visible: bool) {
+        if x_visible {
+            for x in self.x_range.0..self.x_range.1 {
+                canvas.put('_', Style::reset(), LocalPos::new(x, self.y_range.1));
+            }
+        }
+       
+        if y_visible {
+            for y in self.y_range.0..self.y_range.1 {
+                canvas.put('|', Style::reset(), LocalPos::new(0, y));
+            }
+        }
+    }
+
+    fn draw_data_points(&self, canvas: &mut Canvas) {
+        self.data.series.iter().for_each(|series| {
+            let mut x = 0;
+            series.points.iter().for_each(|point| {
+                canvas.put('*', Style::reset(), LocalPos::new(x, self.get_y_range() - *point as u16));
+                x = x + 1;
+            })
+        })
     }
 }
+
 impl Component for Graph {
     type State = GraphState;
     type Message = GraphMessage;
@@ -80,34 +124,65 @@ impl Component for Graph {
         &mut self,
         message: Self::Message,
         state: &mut Self::State,
-        _children: Children<'_, '_>,
-        _context: Context<'_, '_, Self::State>,
+        mut children: Children<'_, '_>,
+        context: Context<'_, '_, Self::State>,
     ) {
         match message {
-            GraphMessage::UpdateDataPoints(_value) => populate_graph_data_points(state),
+            GraphMessage::UpdateDataPoints(_value) =>  {
+                self.populate_graph_data_points(state);
+
+                let x_visible = context.attributes.get_as::<bool>("x_axis_visible")
+                    .unwrap_or_else(|| true);
+                let y_visible = context.attributes.get_as::<bool>("y_axis_visible")
+                    .unwrap_or_else(|| true);
+                // let markers = context.attributes.get_as::<Vec<&str>>("markers");
+                
+                children.elements().by_tag("canvas")
+                    .first(|el, _| {
+                        let canvas = el.to::<Canvas>();
+                        self.draw_axis(canvas, x_visible, y_visible);
+                        self.draw_data_points(canvas);
+                    });
+            },
         }
     }
 }
 
 fn get_default_data_set() -> GraphData {
     let gs1 = GraphSeries {
-        points: List::from_iter(vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9]).into(),
-        count: 10.into(),
+        points: vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
     };
     let gs2 = GraphSeries {
-        points: List::from_iter(vec![11, 12]).into(),
-        count: 2.into(),
+        points: vec![5, 6],
     };
-    let series: List<GraphSeries> = List::from_iter(vec![gs1, gs2]);
-    GraphData {
-        data: series.into(),
-        count: 2.into(),
-    }
+    let series: Vec<GraphSeries> = vec![gs1, gs2];
+    GraphData { series }
 }
 
-fn populate_graph_data_points(state: &mut GraphState) {
-    state.update_needed.set(true);
-    state.series.set(get_default_data_set());
+fn determine_largest_range_in_series(graph_data: &GraphData) -> (u16, u16) {
+    let mut smallest: u16 = 0;
+    let mut largest: u16 = 0;
+    graph_data.series.iter().for_each(|series| {
+        series.points.iter().for_each(|point| {
+            if largest < *point {
+                largest = *point;
+            }
+            if smallest > *point {
+                smallest = *point;
+            }
+        })
+    });
+    (smallest as u16, largest as u16)
+}
+
+fn determine_largest_number_of_data_points(graph_data: &GraphData) -> (u16, u16) {
+    let mut largest: u32 = 0;
+    graph_data.series.iter().for_each(|series| {
+        if largest < series.points.len() as u32 {
+            largest = series.points.len() as u32;
+        }
+    });
+    (0, largest as u16)
 }
 
 impl ExtendedWidget for Graph {
