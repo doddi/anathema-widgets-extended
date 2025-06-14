@@ -2,10 +2,9 @@ use crate::ExtendedWidget;
 use anathema::component::{Children, Component, Context, KeyCode, KeyEvent, State};
 use anathema::default_widgets::Canvas;
 use anathema::geometry::LocalPos;
-use anathema::resolver::ValueKind;
 use anathema::runtime::Builder;
-use anathema::state::{List, Number, Value};
-use anathema::widgets::{Style, Widget};
+use anathema::state::Value;
+use anathema::widgets::Style;
 
 #[derive(State)]
 pub struct GraphState {
@@ -21,24 +20,10 @@ pub struct GraphSeries {
     pub points: Vec<u16>,
 }
 
-pub struct DataPoint {
-    pub x: Value<Number>,
-    pub y: Value<Number>,
-}
-
 impl GraphState {
     pub fn new() -> Self {
         GraphState {
             update_needed: Value::new(false),
-        }
-    }
-}
-
-impl Default for DataPoint {
-    fn default() -> Self {
-        DataPoint {
-            x: Value::new(0.into()),
-            y: Value::new(0.into()),
         }
     }
 }
@@ -68,21 +53,21 @@ impl Graph {
         self.y_range = determine_largest_range_in_series(&self.data);
         self.x_range = determine_largest_number_of_data_points(&self.data);
     }
-   
+
     fn get_y_range(&self) -> u16 {
         /* TODO: instead of taking the values based on max ranges we should probably take into account
          that the graph area may be bigger than the actual data points, data points themselves might get resized
          */
-       self.y_range.1 - self.y_range.0 
+       self.y_range.1 - self.y_range.0
     }
-    
+
     fn draw_axis(&self, canvas: &mut Canvas, x_visible: bool, y_visible: bool) {
         if x_visible {
             for x in self.x_range.0..self.x_range.1 {
                 canvas.put('_', Style::reset(), LocalPos::new(x, self.y_range.1));
             }
         }
-       
+
         if y_visible {
             for y in self.y_range.0..self.y_range.1 {
                 canvas.put('|', Style::reset(), LocalPos::new(0, y));
@@ -90,11 +75,19 @@ impl Graph {
         }
     }
 
-    fn draw_data_points(&self, canvas: &mut Canvas) {
-        self.data.series.iter().for_each(|series| {
+    fn draw_data_points(&self, canvas: &mut Canvas, markers: &Vec<char>) {
+        self.data.series.iter().enumerate().for_each(|(index, series)| {
             let mut x = 0;
+            
+            let marker: char;
+            if index > markers.len() {
+                marker = markers.get(0).unwrap().to_ascii_lowercase();
+            } else {
+                marker = markers.get(index).unwrap().to_ascii_lowercase();
+            }
+            
             series.points.iter().for_each(|point| {
-                canvas.put('*', Style::reset(), LocalPos::new(x, self.get_y_range() - *point as u16));
+                canvas.put(marker, Style::reset(), LocalPos::new(x, self.get_y_range() - *point as u16));
                 x = x + 1;
             })
         })
@@ -135,13 +128,14 @@ impl Component for Graph {
                     .unwrap_or_else(|| true);
                 let y_visible = context.attributes.get_as::<bool>("y_axis_visible")
                     .unwrap_or_else(|| true);
-                // let markers = context.attributes.get_as::<Vec<&str>>("markers");
+                let markers = context.attributes.get_as::<&str>("markers")
+                    .unwrap_or_else(|| "@").chars().collect::<Vec<char>>();
                 
                 children.elements().by_tag("canvas")
                     .first(|el, _| {
                         let canvas = el.to::<Canvas>();
                         self.draw_axis(canvas, x_visible, y_visible);
-                        self.draw_data_points(canvas);
+                        self.draw_data_points(canvas, &markers);
                     });
             },
         }

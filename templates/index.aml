@@ -5,5 +5,5 @@
     y_axis_visible: true,
     x_legend: "time",
     y_legend: "score",
-    markers: ["*", "^", "%"]
+    markers: "*$^%"
 ]
