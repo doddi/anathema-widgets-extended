@@ -1,4 +1,5 @@
 mod graph;
+mod graph_points;
 
 use anathema::prelude::{Backend, Document, TuiBackend};
 use anathema::runtime::{Builder, Runtime};
@@ -7,8 +8,8 @@ fn main() {
     let doc = Document::new("@index");
 
     let mut backend = TuiBackend::builder()
-        .enable_alt_screen()
-        .enable_raw_mode()
+        // .enable_alt_screen()
+        // .enable_raw_mode()
         .hide_cursor()
         .finish()
         .unwrap();
