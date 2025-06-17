@@ -127,7 +127,7 @@ impl Graph {
 
         state.series.to_ref().iter().enumerate().for_each(|(index, series)| {
             match graph_type {
-                GraphType::Point => self.draw_point_graph(y_range, canvas, &series.to_ref().points, Self::determine_marker(markers, 0)),
+                GraphType::Point => self.draw_point_graph(width, y_range, canvas, &series.to_ref().points, Self::determine_marker(markers, 0)),
                 GraphType::Bar => {
                     let mut style = Style::new();
                     style.set_bg(Self::get_bar_colour(index));
@@ -166,12 +166,12 @@ impl Graph {
         })
     }
 
-    fn draw_point_graph(&self, range: u16, canvas: &mut Canvas, points: &Value<List<u16>>, marker: char) {
+    fn draw_point_graph(&self, width: u16, y_range: u16, canvas: &mut Canvas, points: &Value<List<u16>>, marker: char) {
         let mut x = 0;
 
         points.to_ref().iter().for_each(| point| {
-            canvas.put(marker, Style::reset(), LocalPos::new(x, range - point.copy_value()));
-            x += 1;
+            canvas.put(marker, Style::reset(), LocalPos::new(x, y_range - point.copy_value()));
+            x += 2;
         })
     }
 
@@ -206,6 +206,7 @@ impl Component for Graph {
 
     fn on_tick(&mut self, state: &mut Self::State, mut children: Children<'_, '_>, context: Context<'_, '_, Self::State>, dt: Duration) {
         if state.updated.copy_value() {
+            state.updated.set(false);
             self.draw_graph(state, &mut children, context);
         }
     }
