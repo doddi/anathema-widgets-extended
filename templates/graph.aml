@@ -8,7 +8,7 @@ border
                     text attributes.y_legend
                     spacer
                 vstack
-                    canvas [width: 20, height: 20]
+                    canvas [width: attributes.width, height: attributes.height]
                     hstack
                         spacer
                         text attributes.x_legend

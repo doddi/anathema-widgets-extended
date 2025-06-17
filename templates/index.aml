@@ -1,10 +1,10 @@
 @graph [
-    width: 20,
-    height: 15,
+    width: 50,
+    height: 50,
     x_axis_visible: true,
     y_axis_visible: true,
     x_legend: "time",
     y_legend: "score",
     markers: "*$^%",
-    type: "point"
+    type: "bar",
 ]

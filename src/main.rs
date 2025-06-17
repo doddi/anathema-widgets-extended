@@ -8,8 +8,8 @@ fn main() {
     let doc = Document::new("@index");
 
     let mut backend = TuiBackend::builder()
-        // .enable_alt_screen()
-        // .enable_raw_mode()
+        .enable_alt_screen()
+        .enable_raw_mode()
         .hide_cursor()
         .finish()
         .unwrap();
@@ -23,7 +23,7 @@ fn main() {
     graph::Graph::register(&mut builder);
 
     builder
-        .finish(|mut runtime| runtime.run(&mut backend))
+        .finish(|runtime| runtime.run(&mut backend))
         .unwrap();
 }
 
