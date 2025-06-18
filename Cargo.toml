@@ -5,3 +5,4 @@ edition = "2024"
 
 [dependencies]
 anathema = { git = "https://github.com/togglebyte/anathema/", branch = "dev" }
+rand = "0.9.1"

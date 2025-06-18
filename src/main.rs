@@ -1,5 +1,6 @@
 mod graph;
 mod graph_points;
+mod starfield;
 
 use anathema::prelude::{Backend, Document, TuiBackend};
 use anathema::runtime::{Builder, Runtime};
@@ -16,11 +17,13 @@ fn main() {
     backend.finalize();
 
     let mut builder = Runtime::builder(doc, &backend);
+    builder.fps(10);
     builder
-        .from_default::<()>("index", "templates/index.aml")
+        .default::<()>("index", "templates/index.aml")
         .unwrap();
 
     graph::Graph::register(&mut builder);
+    starfield::Starfield::register(&mut builder);
 
     builder
         .finish(|runtime| runtime.run(&mut backend))

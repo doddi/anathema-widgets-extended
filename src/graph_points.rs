@@ -54,8 +54,8 @@ pub fn get_default_data_set() -> GraphData {
     let gs2 = GraphSeries {
         points: vec![1.0, 2.0],
     };
-    // let series: Vec<GraphSeries> = vec![gs1, gs2];
-    let series: Vec<GraphSeries> = vec![gs1];
+    let series: Vec<GraphSeries> = vec![gs1, gs2];
+    // let series: Vec<GraphSeries> = vec![gs1];
     GraphData { series }
 }
 

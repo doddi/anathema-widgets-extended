@@ -123,15 +123,25 @@ impl Graph {
     //TODO: This should take into account the canvas width and draw the data points accordingly
     fn draw_data_points(&self, state: &GraphDataState, canvas: &mut Canvas, markers: &[char], graph_type: &GraphType, width: u16) {
         let y_range = state.y_range.to_ref().max.copy_value() - state.y_range.to_ref().min.copy_value();
-        // let x_range = state.x_range.to_ref().max.copy_value() - state.x_range.to_ref().min.copy_value();
-
+        let x_range = state.x_range.to_ref().max.copy_value() - state.x_range.to_ref().min.copy_value();
+       
+        let mut largest_points_len = 0;
+        state.series.to_ref().iter().for_each(|series| {
+            (series.to_ref().points.len() > largest_points_len)
+                .then(|| largest_points_len = series.to_ref().points.len());
+        });
+        let mut bar_width = (x_range as usize / largest_points_len) as u16;
+        if bar_width > 1 {
+            bar_width -= 1; // Ensure at least one character width for the bar
+        }
+        
         state.series.to_ref().iter().enumerate().for_each(|(index, series)| {
             match graph_type {
-                GraphType::Point => self.draw_point_graph(width, y_range, canvas, &series.to_ref().points, Self::determine_marker(markers, 0)),
+                GraphType::Point => self.draw_point_graph(bar_width, y_range, canvas, &series.to_ref().points, Self::determine_marker(markers, index)),
                 GraphType::Bar => {
                     let mut style = Style::new();
                     style.set_bg(Self::get_bar_colour(index));
-                    self.draw_bar_graph(width, y_range, canvas, &series.to_ref().points, style)
+                    self.draw_bar_graph(bar_width, y_range, canvas, &series.to_ref().points, style)
                 },
             }
         });
@@ -145,13 +155,8 @@ impl Graph {
         }
     }
 
-    fn draw_bar_graph(&self, x_range: u16, y_range: u16, canvas: &mut Canvas, points: &Value<List<u16>>, style: Style) {
+    fn draw_bar_graph(&self, bar_width: u16, y_range: u16, canvas: &mut Canvas, points: &Value<List<u16>>, style: Style) {
         let mut x = 0;
-        //TODO: Bad, need to look at a better way to determine the width of the bar
-        let mut bar_width = (x_range as usize / points.len()) as u16;
-        if bar_width > 1 {
-            bar_width -= 1; // Ensure at least one character width for the bar
-        }
 
         points.to_ref().iter().for_each(|point| {
             let value = point.copy_value();
@@ -166,12 +171,12 @@ impl Graph {
         })
     }
 
-    fn draw_point_graph(&self, width: u16, y_range: u16, canvas: &mut Canvas, points: &Value<List<u16>>, marker: char) {
+    fn draw_point_graph(&self, point_width: u16, y_range: u16, canvas: &mut Canvas, points: &Value<List<u16>>, marker: char) {
         let mut x = 0;
 
         points.to_ref().iter().for_each(| point| {
             canvas.put(marker, Style::reset(), LocalPos::new(x, y_range - point.copy_value()));
-            x += 2;
+            x += point_width + 1; // +1 for the space between points
         })
     }
 

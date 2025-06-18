@@ -1,0 +1,8 @@
+border
+    vstack
+        //text "x_start: " state.x_start ", y_start: " state.y_start
+        //text "x_pos:   " state.x_pos   ", y_pos:   " state.y_pos
+        //text "x_ratio:   " state.x_ratio   ", y_ratio:   " state.y_ratio
+        //text "counter_x:   " state.counter_x   ", counter_y:   " state.counter_y
+        //text "radius: " state.radius
+        canvas [width: attributes.width, height: attributes.height]
