@@ -1,5 +1,4 @@
 mod graph;
-mod graph_points;
 mod starfield;
 
 use anathema::prelude::{Backend, Document, TuiBackend};
@@ -22,8 +21,8 @@ fn main() {
         .default::<()>("index", "templates/index.aml")
         .unwrap();
 
-    graph::Graph::register(&mut builder);
-    starfield::Starfield::register(&mut builder);
+    graph::graph::Graph::register(&mut builder);
+    starfield::starfield::Starfield::register(&mut builder);
 
     builder
         .finish(|runtime| runtime.run(&mut backend))

@@ -1,5 +1,5 @@
 use anathema::state::{List, Value};
-use crate::graph::{GraphDataState, GraphSeriesState};
+use crate::graph::graph::{GraphDataState, GraphSeriesState};
 
 
 #[derive(Default)]

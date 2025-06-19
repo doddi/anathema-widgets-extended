@@ -5,10 +5,14 @@ if true
     @graph [
         width: 50,
         height: 30,
-        x_axis_visible: true,
-        y_axis_visible: true,
+        x_axis: "▁",
+        y_axis: "│",
         x_legend: "time",
         y_legend: "score",
         markers: "*$^%",
         type: "bar",
+        data: [
+            [1, 2, 3, 4, 5],
+            [2, 3, 5, 7, 11],
+        ],
     ]

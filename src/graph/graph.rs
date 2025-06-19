@@ -4,10 +4,11 @@ use crate::ExtendedWidget;
 use anathema::component::{Children, Component, Context, KeyCode, KeyEvent, List, State, Value};
 use anathema::default_widgets::Canvas;
 use anathema::geometry::LocalPos;
+use anathema::resolver::ValueKind;
 use anathema::runtime::Builder;
 use anathema::state::Color;
 use anathema::widgets::Style;
-use crate::graph_points::{convert_series_to_state, get_default_data_set};
+use crate::graph::graph_points::{convert_series_to_state, get_default_data_set};
 
 #[derive(State, Default)]
 pub struct GraphDataState {
@@ -39,10 +40,8 @@ pub struct Graph {}
 
 impl Graph {
     fn draw_graph(&mut self, state: &mut GraphDataState, children: &mut Children, context: Context<GraphDataState>) {
-        let x_visible = context.attributes.get_as::<bool>("x_axis_visible")
-            .unwrap_or(true);
-        let y_visible = context.attributes.get_as::<bool>("y_axis_visible")
-            .unwrap_or(true);
+        let x_axis = context.attributes.get_as::<char>("x_axis");
+        let y_axis = context.attributes.get_as::<char>("y_axis");
         let markers = context.attributes.get_as::<&str>("markers")
             .unwrap_or("@").chars().collect::<Vec<char>>();
         let graph_type: GraphType = context.attributes.get_as::<&str>("type")
@@ -51,14 +50,16 @@ impl Graph {
             .unwrap_or(20);
         let height = context.attributes.get_as::<u16>("height")
             .unwrap_or(20);
-
+        
+        // let data = context.attributes.iter_as::<[[f64;8]; 8]>("data").map(|v| v.iter_as::<[f64]>());
+        //     .collect::<Vec<_>>();
 
         let s = state.deref();;
 
         children.elements().by_tag("canvas")
             .first(|el, _| {
                 let canvas = el.to::<Canvas>();
-                self.draw_axis(s, canvas, x_visible, y_visible, width, height);
+                self.draw_axis(s, canvas, x_axis, y_axis, width, height);
                 self.draw_data_points(s, canvas, &markers, &graph_type, width);
             });
     }
@@ -98,24 +99,30 @@ impl Graph {
         graph_data.x_range.set(Range { min: Value::new(x_range.0), max: Value::new(x_range.1) });
     }
 
-    fn draw_axis(&self, state: &GraphDataState, canvas: &mut Canvas, x_visible: bool, y_visible: bool, width: u16, height: u16) {
-        if x_visible {
-            let y_range = state.y_range.to_ref();
-            // y position for the x axis is determined by the range of y
-            let y = (height / (y_range.max.copy_value() - y_range.min.copy_value())) * y_range.max.copy_value() - 1;
-            for x in 0..width {
-                canvas.put('▁', Style::reset(), LocalPos::new(x, y));
+    fn draw_axis(&self, state: &GraphDataState, canvas: &mut Canvas, x_axis: Option<char>, y_axis: Option<char>, width: u16, height: u16) {
+        match x_axis {
+            None => {}
+            Some(value) => {
+                let y_range = state.y_range.to_ref();
+                // y position for the x axis is determined by the range of y
+                let y = (height / (y_range.max.copy_value() - y_range.min.copy_value())) * y_range.max.copy_value() - 1;
+                for x in 0..width {
+                    canvas.put(value, Style::reset(), LocalPos::new(x, y));
+                }
             }
         }
-
-        if y_visible {
-            let x_range = state.x_range.to_ref();
-            let y_range = state.y_range.to_ref();
-            let i = (x_range.max.copy_value() - x_range.min.copy_value());
-            let i1 = x_range.min.copy_value();
-            let x = (width / i) * i1;
-            for y in y_range.min.copy_value()..y_range.max.copy_value() {
-                canvas.put('│', Style::reset(), LocalPos::new(x, y));
+        
+        match y_axis {
+            None => {}
+            Some(value) => {
+                let x_range = state.x_range.to_ref();
+                let y_range = state.y_range.to_ref();
+                let i = (x_range.max.copy_value() - x_range.min.copy_value());
+                let i1 = x_range.min.copy_value();
+                let x = (width / i) * i1;
+                for y in y_range.min.copy_value()..y_range.max.copy_value() {
+                    canvas.put(value, Style::reset(), LocalPos::new(x, y));
+                }
             }
         }
     }
