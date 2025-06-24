@@ -25,7 +25,7 @@ fn main() {
     starfield::starfield::Starfield::register(&mut builder);
 
     builder
-        .finish(|runtime| runtime.run(&mut backend))
+        .finish(&mut backend, |runtime, backend| runtime.run(backend))
         .unwrap();
 }
 

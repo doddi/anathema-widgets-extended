@@ -1,16 +1,11 @@
-border
-    container
-        vstack
-            spacer
-            hstack
-                vstack
-                    spacer
-                    text attributes.y_legend
-                    spacer
-                vstack
-                    canvas [width: attributes.width, height: attributes.height]
-                    hstack
-                        spacer
-                        text attributes.x_legend
-                        spacer
-            spacer
+hstack
+    vstack [width: 1]
+        align [alignment: "centre"]
+            text attributes.y_legend
+    vstack
+        expand
+            canvas
+
+        hstack [height: 1]
+            align [alignment: "centre"]
+                text attributes.x_legend

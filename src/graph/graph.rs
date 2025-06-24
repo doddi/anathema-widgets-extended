@@ -3,17 +3,15 @@ use std::time::Duration;
 use crate::ExtendedWidget;
 use anathema::component::{Children, Component, Context, KeyCode, KeyEvent, List, State, Value};
 use anathema::default_widgets::Canvas;
-use anathema::geometry::LocalPos;
-use anathema::resolver::ValueKind;
+use anathema::geometry::{LocalPos, Size};
 use anathema::runtime::Builder;
 use anathema::state::Color;
-use anathema::widgets::Style;
-use crate::graph::graph_points::{convert_series_to_state, get_default_data_set};
+use anathema::widgets::{Element, Style};
+use crate::graph::graph_points::{calculate_point_width, convert_series_to_state, get_default_data_set};
 
 #[derive(State, Default)]
 pub struct GraphDataState {
-    pub x_range: Value<Range>,
-    pub y_range: Value<Range>,
+    pub point_width: Value<u16>,
     pub series: Value<List<GraphSeriesState>>,
     pub updated: Value<bool>,
 }
@@ -46,22 +44,31 @@ impl Graph {
             .unwrap_or("@").chars().collect::<Vec<char>>();
         let graph_type: GraphType = context.attributes.get_as::<&str>("type")
             .unwrap_or("point").into();
-        let width = context.attributes.get_as::<u16>("width")
-            .unwrap_or(20);
-        let height = context.attributes.get_as::<u16>("height")
-            .unwrap_or(20);
-        
-        // let data = context.attributes.iter_as::<[[f64;8]; 8]>("data").map(|v| v.iter_as::<[f64]>());
-        //     .collect::<Vec<_>>();
-
-        let s = state.deref();;
 
         children.elements().by_tag("canvas")
             .first(|el, _| {
+                let size = el.size();
                 let canvas = el.to::<Canvas>();
-                self.draw_axis(s, canvas, x_axis, y_axis, width, height);
-                self.draw_data_points(s, canvas, &markers, &graph_type, width);
+                self.draw_axis(canvas, x_axis, y_axis, size);
+                self.draw_data_points(state.deref(), canvas, &markers, &graph_type, size);
             });
+    }
+
+    fn calculate_state(&mut self, state: &mut GraphDataState, el: &mut Element) {
+        let size = el.size();
+
+        let mut max_width = 0;
+        for series in get_default_data_set().series {
+            let point_width = calculate_point_width(&series, size);
+            if point_width > max_width {
+                max_width = point_width;
+            }
+        }
+        state.point_width = Value::new(max_width);
+
+        let list = convert_series_to_state(&get_default_data_set(), size);
+        state.series.set(list);
+        state.updated.set(true);
     }
 }
 
@@ -69,9 +76,9 @@ enum GraphType {
     Point, Bar
 }
 
-impl Into<GraphType> for &str {
-    fn into(self) -> GraphType {
-        match self {
+impl From<&str> for GraphType {
+    fn from(value: &str) -> Self {
+        match value {
             "bar" => GraphType::Bar,
             _ => GraphType::Point,
         }
@@ -80,34 +87,12 @@ impl Into<GraphType> for &str {
 
 impl Graph {
 
-    fn determine_ranges(&self, graph_data: &mut GraphDataState, width: u16, height: u16) {
-        let mut y_range = (0u16, 0u16);
-        let mut x_range = (0u16, 0u16);
-
-        graph_data.series.for_each(|series| {
-            if series.points.len() > x_range.1 as usize {
-                x_range.1 = series.points.len() as u16;
-            }
-
-            series.points.for_each(|point| {
-                if *point > y_range.1 {
-                    y_range.1 = *point;
-                }
-            })
-        });
-        graph_data.y_range.set(Range { min: Value::new(y_range.0), max: Value::new(y_range.1) });
-        graph_data.x_range.set(Range { min: Value::new(x_range.0), max: Value::new(x_range.1) });
-    }
-
-    fn draw_axis(&self, state: &GraphDataState, canvas: &mut Canvas, x_axis: Option<char>, y_axis: Option<char>, width: u16, height: u16) {
+    fn draw_axis(&self, canvas: &mut Canvas, x_axis: Option<char>, y_axis: Option<char>, size: Size) {
         match x_axis {
             None => {}
             Some(value) => {
-                let y_range = state.y_range.to_ref();
-                // y position for the x axis is determined by the range of y
-                let y = (height / (y_range.max.copy_value() - y_range.min.copy_value())) * y_range.max.copy_value() - 1;
-                for x in 0..width {
-                    canvas.put(value, Style::reset(), LocalPos::new(x, y));
+                for x in 0..size.width {
+                    canvas.put(value, Style::reset(), LocalPos::new(x, size.height - 1));
                 }
             }
         }
@@ -115,40 +100,33 @@ impl Graph {
         match y_axis {
             None => {}
             Some(value) => {
-                let x_range = state.x_range.to_ref();
-                let y_range = state.y_range.to_ref();
-                let i = (x_range.max.copy_value() - x_range.min.copy_value());
-                let i1 = x_range.min.copy_value();
-                let x = (width / i) * i1;
-                for y in y_range.min.copy_value()..y_range.max.copy_value() {
-                    canvas.put(value, Style::reset(), LocalPos::new(x, y));
+                for y in 0..size.height {
+                    canvas.put(value, Style::reset(), LocalPos::new(0, y));
                 }
             }
         }
     }
 
     //TODO: This should take into account the canvas width and draw the data points accordingly
-    fn draw_data_points(&self, state: &GraphDataState, canvas: &mut Canvas, markers: &[char], graph_type: &GraphType, width: u16) {
-        let y_range = state.y_range.to_ref().max.copy_value() - state.y_range.to_ref().min.copy_value();
-        let x_range = state.x_range.to_ref().max.copy_value() - state.x_range.to_ref().min.copy_value();
-       
+    fn draw_data_points(&self, state: &GraphDataState, canvas: &mut Canvas, markers: &[char], graph_type: &GraphType, size: Size) {
+
         let mut largest_points_len = 0;
         state.series.to_ref().iter().for_each(|series| {
             (series.to_ref().points.len() > largest_points_len)
                 .then(|| largest_points_len = series.to_ref().points.len());
         });
-        let mut bar_width = (x_range as usize / largest_points_len) as u16;
+        let mut bar_width = (size.width as usize / largest_points_len) as u16;
         if bar_width > 1 {
             bar_width -= 1; // Ensure at least one character width for the bar
         }
         
         state.series.to_ref().iter().enumerate().for_each(|(index, series)| {
             match graph_type {
-                GraphType::Point => self.draw_point_graph(bar_width, y_range, canvas, &series.to_ref().points, Self::determine_marker(markers, index)),
+                GraphType::Point => self.draw_point_graph(bar_width, size.height, canvas, &series.to_ref().points, Self::determine_marker(markers, index)),
                 GraphType::Bar => {
                     let mut style = Style::new();
                     style.set_bg(Self::get_bar_colour(index));
-                    self.draw_bar_graph(bar_width, y_range, canvas, &series.to_ref().points, style)
+                    self.draw_bar_graph(bar_width, size.height, canvas, &series.to_ref().points, style)
                 },
             }
         });
@@ -163,7 +141,7 @@ impl Graph {
     }
 
     fn draw_bar_graph(&self, bar_width: u16, y_range: u16, canvas: &mut Canvas, points: &Value<List<u16>>, style: Style) {
-        let mut x = 0;
+        let mut x = 1;
 
         points.to_ref().iter().for_each(|point| {
             let value = point.copy_value();
@@ -216,34 +194,39 @@ impl Component for Graph {
         }
     }
 
-    fn on_tick(&mut self, state: &mut Self::State, mut children: Children<'_, '_>, context: Context<'_, '_, Self::State>, dt: Duration) {
+    fn on_tick(&mut self, state: &mut Self::State, mut children: Children<'_, '_>, context: Context<'_, '_, Self::State>, _dt: Duration) {
         if state.updated.copy_value() {
             state.updated.set(false);
             self.draw_graph(state, &mut children, context);
         }
     }
 
+
+
     fn on_message(
         &mut self,
         message: Self::Message,
         state: &mut Self::State,
-        _children: Children<'_, '_>,
-        context: Context<'_, '_, Self::State>,
+        mut children: Children<'_, '_>,
+        _context: Context<'_, '_, Self::State>,
     ) {
         match message {
             GraphMessage::UpdateDataPoints(_value) =>  {
-                let width = context.attributes.get_as::<u16>("width")
-                    .unwrap_or(20);
-                let height = context.attributes.get_as::<u16>("height")
-                    .unwrap_or(20);
+                children.elements().by_tag("canvas")
+                    .first(|el, _| {
+                        self.calculate_state(state, el);
+                    });
 
-                let list = convert_series_to_state(&get_default_data_set(), height);
-                state.series.set(list);
-
-                self.determine_ranges(state, width, height);
-                state.updated.set(true);
             },
         }
+    }
+
+    fn on_resize(&mut self, state: &mut Self::State, mut children: Children<'_, '_>, _context: Context<'_, '_, Self::State>) {
+        // TODO: Why is this not working?
+        children.elements().by_tag("canvas")
+            .first(|el, _| {
+                self.calculate_state(state, el);
+            });
     }
 }
 

@@ -1,5 +1,6 @@
+use anathema::geometry::Size;
 use anathema::state::{List, Value};
-use crate::graph::graph::{GraphDataState, GraphSeriesState};
+use crate::graph::graph::GraphSeriesState;
 
 
 #[derive(Default)]
@@ -29,19 +30,28 @@ pub struct GraphSeries {
 //     }
 // }
 
-pub fn convert_series_to_state(graph_data: &GraphData, y_range: u16) -> List<GraphSeriesState> {
+pub fn convert_series_to_state(graph_data: &GraphData, size: Size) -> List<GraphSeriesState> {
     let largest_range_in_series = determine_largest_range_in_series(graph_data);
     graph_data.series.iter().map(|series| {
         GraphSeriesState {
-            points: convert_points(series, &largest_range_in_series, y_range)
+            points: convert_points(series, &largest_range_in_series, size)
         }
     }).collect()
 }
 
-fn convert_points(series: &GraphSeries, largest_range_in_series: &(f32, f32), y_range: u16) -> Value<List<u16>> {
+pub fn calculate_point_width(series: &GraphSeries, size: Size) -> u16 {
+    let range = series.points.len() as f32;
+    if range > 0.0 {
+        (size.width as f32 / range) as u16
+    } else {
+        1 // Default to 1 if no points
+    }
+}
+
+fn convert_points(series: &GraphSeries, largest_range_in_series: &(f32, f32), size: Size) -> Value<List<u16>> {
     let range = largest_range_in_series.1 - largest_range_in_series.0;
     let values: Vec<u16> = series.points.iter().map(|point| {
-        ((*point / range) * y_range as f32) as u16
+        ((*point / range) * size.height as f32) as u16
     }).collect();
 
     List::from_iter(values).into()
@@ -49,7 +59,7 @@ fn convert_points(series: &GraphSeries, largest_range_in_series: &(f32, f32), y_
 
 pub fn get_default_data_set() -> GraphData {
     let gs1 = GraphSeries {
-        points: vec![0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0],
+        points: vec![5.0, 3.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0],
     };
     let gs2 = GraphSeries {
         points: vec![1.0, 2.0],
@@ -59,6 +69,9 @@ pub fn get_default_data_set() -> GraphData {
     GraphData { series }
 }
 
+/// This function determines the smallest and largest values in the series of points
+/// to be used for scaling the graph.
+/// The idea is that it will eventually cater for negative values as well,
 fn determine_largest_range_in_series(graph_data: &GraphData) -> (f32, f32) {
     let mut smallest: f32 = 0.0;
     let mut largest: f32 = 0.0;

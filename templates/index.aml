@@ -1,18 +1,19 @@
-if false
-    @starfield [width: 150, height: 70, stars: 40, color: "white", background_color: "black"]
-
 if true
-    @graph [
-        width: 50,
-        height: 30,
-        x_axis: "▁",
-        y_axis: "│",
-        x_legend: "time",
-        y_legend: "score",
-        markers: "*$^%",
-        type: "bar",
-        data: [
-            [1, 2, 3, 4, 5],
-            [2, 3, 5, 7, 11],
-        ],
-    ]
+    @starfield [width: 150, height: 70, stars: 40, color: "white", background_color: "black"]
+else
+    vstack
+        hstack
+            spacer
+            text "Graph Example: Press enter to change data points"
+            spacer
+        @graph [
+            width: 50,
+            height: 20,
+            x_axis: "▁",
+            y_axis: "│",
+            x_legend: "time",
+            y_legend: "score",
+            markers: "*$^%",        // markers are only valid for point graphs
+            type: "bar",            // possible values: "bar", "point"
+            data: [1, 2, 3, 4, 5],
+        ]

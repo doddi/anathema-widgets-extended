@@ -1,11 +1,10 @@
-use std::num;
 use std::time::Duration;
-use anathema::component::{Children, Color, Component, Context};
+use anathema::component::{Children, Component, Context};
 use anathema::default_widgets::Canvas;
 use anathema::geometry::LocalPos;
 use anathema::runtime::Builder;
 use anathema::state::{State, Value};
-use anathema::widgets::{Attributes, Style};
+use anathema::widgets::Style;
 use rand::prelude::Distribution;
 use crate::ExtendedWidget;
 
@@ -55,69 +54,69 @@ struct Star {
     pos_x: f32,
     pos_y: f32,
     radius: StarSize,
-    max_radius: StarSize,
-    speed: i32,
-    counter_x: i32,
-    counter_y: i32,
-}
+        max_radius: StarSize,
+        speed: i32,
+        counter_x: i32,
+        counter_y: i32,
+    }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum StarSize {
-    Small,
-    Medium,
-    Large,
-    ExtraLarge,
-}
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+    enum StarSize {
+        Small,
+        Medium,
+        Large,
+        ExtraLarge,
+    }
 
-impl Distribution<StarSize> for rand::distr::StandardUniform {
-    fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> StarSize {
-        match rng.random_range(0..4) {
-            0 => StarSize::Small,
-            1 => StarSize::Medium,
-            2 => StarSize::Large,
-            3 => StarSize::ExtraLarge,
-            _ => unreachable!(),
+    impl Distribution<StarSize> for rand::distr::StandardUniform {
+        fn sample<R: rand::Rng + ?Sized>(&self, rng: &mut R) -> StarSize {
+            match rng.random_range(0..4) {
+                0 => StarSize::Small,
+                1 => StarSize::Medium,
+                2 => StarSize::Large,
+                3 => StarSize::ExtraLarge,
+                _ => unreachable!(),
+            }
         }
     }
-}
 
-impl From<StarSize> for i32 {
-    fn from(size: StarSize) -> Self {
-        match size {
-            StarSize::Small => 0,
-            StarSize::Medium => 1,
-            StarSize::Large => 2,
-            StarSize::ExtraLarge => 3,
+    impl From<StarSize> for i32 {
+        fn from(size: StarSize) -> Self {
+            match size {
+                StarSize::Small => 0,
+                StarSize::Medium => 1,
+                StarSize::Large => 2,
+                StarSize::ExtraLarge => 3,
+            }
         }
     }
-}
 
-impl From<i32> for StarSize {
-    fn from(value: i32) -> Self {
-        match value {
-            0 => StarSize::Small,
-            1 => StarSize::Medium,
-            2 => StarSize::Large,
-            3 => StarSize::ExtraLarge,
-            _ => unreachable!("Invalid star size value: {}", value),
+    impl From<i32> for StarSize {
+        fn from(value: i32) -> Self {
+            match value {
+                0 => StarSize::Small,
+                1 => StarSize::Medium,
+                2 => StarSize::Large,
+                3 => StarSize::ExtraLarge,
+                _ => unreachable!("Invalid star size value: {}", value),
+            }
         }
     }
-}
 
-impl Star {
-    pub fn new(width: i32, height: i32) -> Self {
-        let center_x = width / 2;
-        let center_y = height / 2;
-        let x_start = Self::get_random(-center_x, center_x);
-        let y_start = Self::get_random(-center_y, center_y);
+    impl Star {
+        pub fn new(width: i32, height: i32) -> Self {
+            let center_x = width / 2;
+            let center_y = height / 2;
+            let x_start = Self::get_random(-center_x, center_x);
+            let y_start = Self::get_random(-center_y, center_y);
 
-        Star {
-            x_start,
-            y_start,
-            pos_x: x_start as f32,
-            pos_y: y_start as f32,
-            radius: StarSize::Small,
-            max_radius: StarSize::ExtraLarge, //rand::random(),
+            Star {
+                x_start,
+                y_start,
+                pos_x: x_start as f32,
+                pos_y: y_start as f32,
+                radius: StarSize::Small,
+                max_radius: rand::random(),
             speed: rand::random_range(1..3),
             counter_x: rand::random_range(0..width / 2),
             counter_y: rand::random_range(0..height / 2),
@@ -125,11 +124,10 @@ impl Star {
     }
 
     fn get_random(start: i32, end: i32) -> i32 {
-        let range = rand::random_range(start..end);
-        range
+        rand::random_range(start..end)
     }
 
-    fn update(&mut self, state: &mut StarfieldState, dt: Duration, width: i32, height: i32) {
+    fn update(&mut self, state: &mut StarfieldState, _dt: Duration, width: i32, height: i32) {
         self.counter_x -= self.speed; // as u16 * dt.as_secs() as u16;
         self.counter_y -= self.speed; // as u16 * dt.as_secs() as u16;
         state.counter_x.set(self.counter_x);
@@ -148,14 +146,14 @@ impl Star {
         state.y_ratio.set(y_ratio);
 
 
-        let star_x = Self::remap(x_ratio as f32, 0.0, 1.0, 0.0, width as f32 / 2.0);
-        let star_y = Self::remap(y_ratio as f32, 0.0, 1.0, 0.0, height as f32 / 2.0);
+        let star_x = Self::remap(x_ratio, 0.0, 1.0, 0.0, width as f32 / 2.0);
+        let star_y = Self::remap(y_ratio, 0.0, 1.0, 0.0, height as f32 / 2.0);
         self.pos_x = star_x;
         self.pos_y = star_y;
         state.x_pos.set(self.pos_x);
         state.y_pos.set(self.pos_y);
 
-        // let max_radius: i32 = self.max_radius.clone().into();
+        let _max_radius: i32 = self.max_radius.clone().into();
         let x = Self::remap(self.counter_x as f32, 0.0, width as f32 / 2.0, 0.0, 1.0);
         let y = Self::remap(self.counter_y as f32, 0.0, height as f32 / 2.0, 0.0, 1.0);
         let y = if x < y {
@@ -188,7 +186,7 @@ impl Star {
     }
 
     fn remap(value: f32, i_start: f32, i_stop: f32, o_start: f32, o_stop: f32) -> f32 {
-        (o_start + (o_stop - o_start) * ((value - i_start) / (i_stop - i_start)))
+        o_start + (o_stop - o_start) * ((value - i_start) / (i_stop - i_start))
     }
 
     fn draw(&self, canvas: &mut Canvas, width: i32, height: i32, character: char) {
@@ -264,27 +262,24 @@ impl Component for Starfield {
     type State = StarfieldState;
     type Message = ();
 
-    fn on_init(&mut self, state: &mut Self::State, children: Children<'_, '_>, context: Context<'_, '_, Self::State>) {
-        let width = context.attributes.get_as::<i32>("width")
-            .unwrap_or(50);
-        let height = context.attributes.get_as::<i32>("height")
-            .unwrap_or(50);
-        let no_of_stars = context.attributes.get_as::<u16>("stars")
-            .unwrap_or(50);
+    fn on_mount(&mut self, _state: &mut Self::State, mut children: Children<'_, '_>, context: Context<'_, '_, Self::State>) {
+        // TODO: Why is this not working?
+        children.elements().by_tag("canvas")
+            .first(|el, _| {
+                let size = el.size();
+                let no_of_stars = context.attributes.get_as::<u16>("stars")
+                    .unwrap_or(50);
 
-        self.initialise_stars(width, height, no_of_stars);
+                self.initialise_stars(size.width as i32, size.height as i32, no_of_stars);
+            });
     }
 
     fn on_tick(&mut self, state: &mut Self::State, mut children: Children<'_, '_>, context: Context<'_, '_, Self::State>, dt: Duration) {
-        let width = context.attributes.get_as::<i32>("width")
-            .unwrap_or(50);
-        let height = context.attributes.get_as::<i32>("height")
-            .unwrap_or(50);
-
         children.elements().by_tag("canvas")
             .first(|el, _| {
+                let size = el.size();
                 let canvas = el.to::<Canvas>();
-                self.update_stars(state, canvas, dt, width, height);
+                self.update_stars(state, canvas, dt, size.width as i32, size.height as i32);
             });
     }
 }
