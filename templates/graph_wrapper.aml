@@ -1,0 +1,15 @@
+vstack
+    hstack
+        spacer
+        text "Graph Example: Press enter to change data points"
+        spacer
+    @graph [
+        width: 50,
+        height: 20,
+        x_axis: "▁",
+        y_axis: "│",
+        x_legend: "time",
+        y_legend: "something",
+        markers: "*$^%",        // markers are only valid for point graphs
+        type: "bar",            // possible values: "bar", "point"
+    ]

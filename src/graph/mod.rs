@@ -1,2 +1,2 @@
 pub mod graph;
-pub mod graph_points;
+pub mod graph_wrapper;

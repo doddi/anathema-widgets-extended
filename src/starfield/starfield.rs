@@ -2,11 +2,9 @@ use std::time::Duration;
 use anathema::component::{Children, Component, Context};
 use anathema::default_widgets::Canvas;
 use anathema::geometry::LocalPos;
-use anathema::runtime::Builder;
 use anathema::state::{State, Value};
 use anathema::widgets::Style;
 use rand::prelude::Distribution;
-use crate::ExtendedWidget;
 
 #[derive(Default)]
 pub struct Starfield {
@@ -153,7 +151,7 @@ struct Star {
         state.x_pos.set(self.pos_x);
         state.y_pos.set(self.pos_y);
 
-        let _max_radius: i32 = self.max_radius.clone().into();
+        let _max_radius: i32 = self.max_radius.into();
         let x = Self::remap(self.counter_x as f32, 0.0, width as f32 / 2.0, 0.0, 1.0);
         let y = Self::remap(self.counter_y as f32, 0.0, height as f32 / 2.0, 0.0, 1.0);
         let y = if x < y {
@@ -274,19 +272,12 @@ impl Component for Starfield {
             });
     }
 
-    fn on_tick(&mut self, state: &mut Self::State, mut children: Children<'_, '_>, context: Context<'_, '_, Self::State>, dt: Duration) {
+    fn on_tick(&mut self, state: &mut Self::State, mut children: Children<'_, '_>, _context: Context<'_, '_, Self::State>, dt: Duration) {
         children.elements().by_tag("canvas")
             .first(|el, _| {
                 let size = el.size();
                 let canvas = el.to::<Canvas>();
                 self.update_stars(state, canvas, dt, size.width as i32, size.height as i32);
             });
-    }
-}
-
-impl ExtendedWidget for Starfield {
-    fn register(builder: &mut Builder<()>) {
-        builder.component("starfield", "templates/starfield.aml", Starfield::default(), StarfieldState::default())
-            .expect("Failed to register starfield component");
     }
 }

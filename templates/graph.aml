@@ -1,11 +1,14 @@
-hstack
-    vstack [width: 1]
-        align [alignment: "centre"]
-            text attributes.y_legend
-    vstack
-        expand
-            canvas
+vstack
+    hstack
+        vstack
+            vstack [width: 1]
+                align [alignment: "centre"]
+                    text attributes.y_legend
+            text state.min_height
+        vstack
+            expand
+                canvas
 
-        hstack [height: 1]
-            align [alignment: "centre"]
-                text attributes.x_legend
+            hstack [height: 1]
+                align [alignment: "centre"]
+                    text attributes.x_legend
