@@ -195,16 +195,20 @@ impl Component for Graph {
     type Message = ();
 
     fn on_tick(&mut self, state: &mut Self::State, mut children: Children<'_, '_>, context: Context<'_, '_, Self::State>, _dt: Duration) {
-        let data = context.attributes.get("data").unwrap().as_list().unwrap();
-        let mut graph_data: GraphData = GraphData::default();
-        for series in data.iter() {
-            let points = series.as_list().unwrap().iter()
-                .map(|v| v.as_float().unwrap() as f32)
-                .collect::<Vec<f32>>();
-            graph_data.series.push(GraphSeries { points });
+        if let Some(attribute_data) = context.attributes.get("data") &&
+            let Some(data) = attribute_data.as_list() {
+            let mut graph_data: GraphData = GraphData::default();
+
+            for series in data.iter() {
+                let points = series.as_list().unwrap().iter()
+                    .map(|v| v.as_float().unwrap() as f32)
+                    .collect::<Vec<f32>>();
+                graph_data.series.push(GraphSeries { points });
+            }
+
+            self.range = determine_largest_range_in_series(&graph_data);
+            self.graph_data = Some(graph_data);
         }
-        self.range = determine_largest_range_in_series(&graph_data);
-        self.graph_data = Some(graph_data);
 
         children.elements().by_tag("canvas")
             .first(|el, _| {

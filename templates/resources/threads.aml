@@ -1,0 +1,17 @@
+border [width: state.thread_count * 3, height: 20]
+    vstack
+        hstack
+            spacer
+            text "Threads"
+            spacer
+        hstack [height: 1]
+            align [alignment: "left"]
+                text "No of threads: " state.thread_count
+        @graph [
+            y_legend: "percent",
+            type: "bar",
+            data: [
+                state.threads,
+                [0.0, 1.0]
+            ]
+        ]
