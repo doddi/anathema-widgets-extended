@@ -1,1 +1,1 @@
-pub(crate) mod threads;
+pub(crate) mod cpus;

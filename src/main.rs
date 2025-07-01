@@ -9,14 +9,14 @@ use anathema::prelude::{Backend, Document, TuiBackend};
 use anathema::runtime::Runtime;
 use sysinfo::System;
 use graph::graph_wrapper::GraphWrapper;
-use crate::resources::threads::ThreadMessage;
+use crate::resources::cpus::CpusMessage;
 
 fn main() {
     let doc = Document::new("@index");
 
     let mut backend = TuiBackend::builder()
-        // .enable_alt_screen()
-        // .enable_raw_mode()
+        .enable_alt_screen()
+        .enable_raw_mode()
         .hide_cursor()
         .finish()
         .unwrap();
@@ -31,7 +31,7 @@ fn main() {
     builder.component("starfield", "templates/starfield.aml", starfield::starfield::Starfield::default(), starfield::starfield::StarfieldState::default()).unwrap();
     builder.prototype("graph", "templates/graph.aml", graph::graph::Graph::default, graph::graph::GraphDataState::default).unwrap();
     builder.component("graph_wrapper", "templates/graph_wrapper.aml", GraphWrapper::new(), ()).unwrap();
-    let thread_id = builder.component("threads", "templates/resources/threads.aml", resources::threads::Threads::default(), resources::threads::ThreadsState::default()).unwrap();
+    let thread_id = builder.component("cpus", "templates/resources/cpus.aml", resources::cpus::Cpus::default(), resources::cpus::CpusState::default()).unwrap();
 
     run_thread(builder.emitter(), thread_id);
 
@@ -40,7 +40,7 @@ fn main() {
         .unwrap();
 }
 
-fn run_thread(emitter: Emitter, thread_id: ComponentId<ThreadMessage>) {
+fn run_thread(emitter: Emitter, thread_id: ComponentId<CpusMessage>) {
     thread::spawn(move || {
         let mut system = System::new_all();
 
@@ -52,10 +52,10 @@ fn run_thread(emitter: Emitter, thread_id: ComponentId<ThreadMessage>) {
                 .map(|cpu| cpu.cpu_usage())
                 .collect();
 
-            let _ = emitter.emit(thread_id, ThreadMessage {
-                thread_info,
+            let _ = emitter.emit(thread_id, CpusMessage {
+                cpu_usage: thread_info,
             });
-            thread::sleep(Duration::from_secs(5));
+            thread::sleep(Duration::from_millis(100));
         }
     });
 }

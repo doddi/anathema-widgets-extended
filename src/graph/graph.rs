@@ -4,6 +4,8 @@ use anathema::default_widgets::Canvas;
 use anathema::geometry::{LocalPos, Size};
 use anathema::state::Color;
 use anathema::widgets::{Element, Style};
+use std::io::Write;
+use anathema::resolver::ValueKind;
 
 #[derive(State, Default)]
 pub struct GraphDataState {
@@ -128,6 +130,11 @@ impl Graph {
                     (series.points.len() > largest_points_len)
                         .then(|| largest_points_len = series.points.len());
                 });
+
+                if largest_points_len == 0 {
+                    return; // No data to draw
+                }
+
                 let mut bar_width = (canvas_size.width as usize / largest_points_len) as u16;
                 if bar_width > 1 {
                     bar_width -= 1; // Ensure at least one character width for the bar
@@ -195,15 +202,40 @@ impl Component for Graph {
     type Message = ();
 
     fn on_tick(&mut self, state: &mut Self::State, mut children: Children<'_, '_>, context: Context<'_, '_, Self::State>, _dt: Duration) {
+        let mut file = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open("log.log")
+            .unwrap();
+
+        // write!(file, "{:?}", context.attributes.get("data")).unwrap();
+
         if let Some(attribute_data) = context.attributes.get("data") &&
             let Some(data) = attribute_data.as_list() {
             let mut graph_data: GraphData = GraphData::default();
 
             for series in data.iter() {
-                let points = series.as_list().unwrap().iter()
-                    .map(|v| v.as_float().unwrap() as f32)
-                    .collect::<Vec<f32>>();
-                graph_data.series.push(GraphSeries { points });
+                match series {
+                   ValueKind::List(data_points) => {
+                        let points = data_points.iter()
+                            .map(|point| point.as_float().unwrap() as f32)
+                            .collect();
+                       graph_data.series.push(GraphSeries { points });
+                   }
+                    ValueKind::DynList(data_points) => {
+                        // write!(file, "{:?}", data_points).unwrap();
+                        let points= data_points.as_state().unwrap().as_any_list().unwrap().iter()
+                            .filter(|point| point.as_state().unwrap().as_float().is_some())
+                            .map(|point| point.as_state().unwrap().as_float().unwrap() as f32)
+                            .collect();
+                        graph_data.series.push(GraphSeries { points });
+                    }
+                    ValueKind::Null => {
+                    }
+                    _ => {
+                        panic!("Unexpected data type");
+                    }
+                }
             }
 
             self.range = determine_largest_range_in_series(&graph_data);

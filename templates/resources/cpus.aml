@@ -1,17 +1,16 @@
-border [width: state.thread_count * 3, height: 20]
+border [width: 70, height: 20]
     vstack
         hstack
             spacer
-            text "Threads"
+            text "CPU Usage"
             spacer
         hstack [height: 1]
             align [alignment: "left"]
-                text "No of threads: " state.thread_count
+                text "No of CPUs: " state.cpu_count
         @graph [
             y_legend: "percent",
             type: "bar",
             data: [
-                state.threads,
-                [0.0, 1.0]
+                state.cpu_usage,
             ]
         ]
